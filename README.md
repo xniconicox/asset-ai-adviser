@@ -17,9 +17,18 @@ Ridge Challengerモデルを作成します。自動売買ではなく、候補�
 公開データの取得・保存・再配布は、JPX、Yahoo Finance、J-Quants、TDnet、OpenAIなど各提供元の
 最新の利用規約に従ってください。第三者サービスとの提携や再配布権を示すものではありません。
 
+## 現在できること
+
+- TOPIX近傍の約500銘柄（現在のwatchlistは492銘柄）の比較
+- 株価からリターン、モメンタム、ボラティリティ、リスク特徴量を計算
+- 財務履歴からPER、PBR、ROE、成長率、利益率などを計算
+- 6M/12MのRule Rank、Point-in-Time学習、Ridge Challenger評価
+- Streamlitランキング、銘柄×月のデータ充足図PNG、日次順位PDF/JSON
+- TDnet原文の保存と、必要時のみ実行するLLM定性構造化
+
 ## 文書
 
-- [PoC README](poc/README.md): セットアップ、取得、学習、画面、日次レポート
+- [PoC README](poc/README.md): 詳細なセットアップ、取得、学習、画面、日次レポート
 - [データ取得方針](docs/データ取得方針.md): J-Quants初回バックフィル、TDnet日次、Yahoo価格
 - [TDnet取得設計](docs/TDnet取得設計.md): 原文保存、再実行、LLM構造化
 - [学習モデル実装](docs/学習モデル実装.md): 入力、リーク対策、Ridge、評価指標
@@ -42,7 +51,7 @@ DuckDB、モデル成果物はGitへ登録しません。
 
 ## 主な出力
 
-- 日次ランキングPDF: REPORT_OUTPUT_DIR（既定はOneDriveの共有フォルダ）
+- 日次ランキングPDF: REPORT_OUTPUT_DIR（未設定時はローカルのout_report）
 - データ充足図PNG: poc/output/coverage/data-coverage-heatmap.png
 - 学習表・モデル: poc/output/training/、poc/output/models/
 
