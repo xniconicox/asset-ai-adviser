@@ -4,13 +4,20 @@
 J-Quantsの財務履歴、TDnetの適時開示を蓄積し、価格・財務特徴量からRule Rankと6M/12Mの
 Ridge Challengerモデルを作成します。自動売買ではなく、候補銘柄の比較と説明を目的としています。
 
-## 記事
+## 公開記事
 
 実装の背景、データ設計、Point-in-Time学習、評価結果はQiita記事にまとめています。
 
-https://qiita.com/xniconicox009/items/003643f7814ef33e84b0
+[Qiita: TOPIX近傍500銘柄の個人向け投資分析基盤](https://qiita.com/xniconicox009/items/003643f7814ef33e84b0)
 
-## まず読む文書
+## 公開範囲と利用規約
+
+このリポジトリはコード・テスト・設計文書だけを公開します。APIキー、DuckDB、raw原文、
+取得済み株価・決算データ、LLM本文・出力、学習成果物、日次レポートはGitへ含めません。
+公開データの取得・保存・再配布は、JPX、Yahoo Finance、J-Quants、TDnet、OpenAIなど各提供元の
+最新の利用規約に従ってください。第三者サービスとの提携や再配布権を示すものではありません。
+
+## 文書
 
 - [PoC README](poc/README.md): セットアップ、取得、学習、画面、日次レポート
 - [データ取得方針](docs/データ取得方針.md): J-Quants初回バックフィル、TDnet日次、Yahoo価格
@@ -20,7 +27,7 @@ https://qiita.com/xniconicox009/items/003643f7814ef33e84b0
 - [定常運用とモデル更新](docs/定常運用とモデル更新.md): 定時取得、レポート、再処理、更新方針
 - [リポジトリ構成](docs/リポジトリ構成.md): Git管理対象とローカルデータ
 
-## クイックスタート
+## セットアップ
 
     cd poc
     python -m venv .venv

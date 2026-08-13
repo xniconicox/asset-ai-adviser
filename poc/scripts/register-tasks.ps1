@@ -6,7 +6,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$PocPath = "/mnt/c/Users/ShunK/works/asset-ai-adviser/poc"
+$PocPath = if ($env:ASSET_POC_PATH) {
+    $env:ASSET_POC_PATH
+} else {
+    (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+}
 $DistributionArgument = if ($WslDistribution) { "-d $WslDistribution " } else { "" }
 
 $DailyAction = New-ScheduledTaskAction `

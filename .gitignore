@@ -17,3 +17,4 @@ poc/data/pipeline.lock
 poc/data/*.duckdb
 poc/data/*.wal
 poc/logs/
+notes.md

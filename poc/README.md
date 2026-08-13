@@ -72,7 +72,7 @@ JPX universe
 ## 実行
 
 ```bash
-cd /mnt/c/Users/ShunK/works/asset-ai-adviser/poc
+cd /path/to/asset-ai-adviser/poc
 source .venv/bin/activate
 
 # 価格・財務・順位の計算
@@ -117,7 +117,7 @@ asset-poc generate-data-coverage
 asset-poc generate-system-summary
 
 # 最新日次特徴量へ6M/12Mモデルを推論し、上位10社の1ページPDFを保存
-asset-poc daily-report --report-dir "/mnt/c/Users/ShunK/OneDrive/share/asset/out_report"
+asset-poc daily-report --report-dir "ユーザー環境の同期フォルダ（REPORT_OUTPUT_DIRで設定）"
 
 # 出力先を変更する場合（poc/.env）
 # REPORT_OUTPUT_DIR="/path/to/synced/out_report"

@@ -16,7 +16,7 @@ def _optional_path(name: str) -> Path | None:
 
 
 DEFAULT_REPORT_OUTPUT_DIR = _optional_path("REPORT_OUTPUT_DIR") or Path(
-    "/mnt/c/Users/ShunK/OneDrive/share/asset/out_report"
+    "out_report"
 )
 LEGACY_GOOGLE_DRIVE_REPORT_DIR = _optional_path("GOOGLE_DRIVE_REPORT_DIR")
 
