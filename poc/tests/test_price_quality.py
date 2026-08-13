@@ -46,6 +46,8 @@ def test_cleaning_preserves_source_and_records_each_action() -> None:
     boundary = cleaned.loc[cleaned["trade_date"] == pd.Timestamp("2026-01-06").date()].iloc[0]
     assert boundary["clean_high"] == 102.0
     assert boundary["quality_status"] == "corrected"
+    assert boundary["valuation_price"] == boundary["clean_close"]
+    assert boundary["return_price"] == boundary["adjusted_close"]
     assert cleaned.loc[cleaned["trade_date"] == pd.Timestamp("2026-01-07").date(), "model_price"].isna().all()
     assert cleaned.loc[cleaned["trade_date"] == pd.Timestamp("2026-01-08").date(), "model_price"].isna().all()
     assert cleaned.loc[cleaned["trade_date"] == pd.Timestamp("2026-01-09").date(), "model_price"].isna().all()
@@ -91,3 +93,26 @@ def test_feature_history_does_not_cross_invalid_or_long_gap() -> None:
     assert pd.isna(result.loc[0, "return_12m"])
     assert result.loc[0, "return_6m"] > 0
     assert result.loc[0, "price_date"] == new_dates[-1].date()
+
+
+def test_valuation_uses_unadjusted_close_while_returns_use_adjusted_close() -> None:
+    dates = pd.bdate_range("2026-01-01", periods=22)
+    source = pd.DataFrame(
+        [
+            _row(
+                str(day.date()),
+                close=120.0,
+                open=120.0,
+                high=120.0,
+                low=120.0,
+                adjusted_close=80.0 + index,
+            )
+            for index, day in enumerate(dates)
+        ]
+    )
+    cleaned, _ = clean_price_history(source)
+
+    result = calculate_price_features(cleaned)
+
+    assert result.loc[0, "latest_close"] == 120.0
+    assert result.loc[0, "return_1m"] == (101.0 / 80.0) - 1.0

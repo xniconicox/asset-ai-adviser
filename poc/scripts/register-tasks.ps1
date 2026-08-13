@@ -22,7 +22,7 @@ Register-ScheduledTask `
     -Action $DailyAction `
     -Trigger $DailyTrigger `
     -Settings $DailySettings `
-    -Description "Asset AI Adviser daily data, ranks, DQ and snapshot" `
+    -Description "Asset AI Adviser daily data, ranks, DQ, snapshot and PDF report (no LLM usage)" `
     -Force
 
 $BackupAction = New-ScheduledTaskAction `
@@ -42,7 +42,7 @@ Register-ScheduledTask `
     -Action $BackupAction `
     -Trigger $BackupTrigger `
     -Settings $BackupSettings `
-    -Description "Asset AI Adviser weekly DuckDB backup" `
+    -Description "Asset AI Adviser weekly DuckDB backup (no LLM usage)" `
     -Force
 
 Write-Host "Registered ${TaskPrefix}-Daily at $DailyAt and weekly backup at $BackupAt."

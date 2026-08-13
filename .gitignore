@@ -8,6 +8,7 @@ __pycache__/
 .env
 .tmp/
 tmp/
+out_report
 poc/output/
 poc/data/raw/
 poc/data/published/

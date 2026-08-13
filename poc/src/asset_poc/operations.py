@@ -314,7 +314,7 @@ def run_data_quality(settings: Settings, batch_run_id: str) -> dict[str, object]
                 "name": "price_historical_ohlc_anomalies",
                 "status": "PASS" if invalid_ohlc_all == 0 else "WARN",
                 "observed": str(invalid_ohlc_all),
-                "threshold": "0; adjusted_close ranking is unaffected",
+                "threshold": "0; derived valuation/return prices are corrected or excluded",
                 "message": "派生層で補正済み。raw値は監査用に保持",
             }
         )

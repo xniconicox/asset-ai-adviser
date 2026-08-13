@@ -721,6 +721,25 @@ def _dispatch_command(args: argparse.Namespace, settings: Settings) -> dict[str,
 
         output = None if not args.output else Path(args.output)
         return generate_model_eda_report(settings, output)
+    if args.command == "generate-system-summary":
+        from asset_poc.system_summary import generate_system_summary
+
+        output = None if not args.output else Path(args.output)
+        return generate_system_summary(settings, output)
+    if args.command == "generate-data-coverage":
+        from asset_poc.data_coverage_chart import generate_data_coverage_chart
+
+        output = None if not args.output else Path(args.output)
+        return generate_data_coverage_chart(
+            settings, output, args.limit or 492, args.start, args.end
+        )
+    if args.command == "daily-report":
+        from asset_poc.report_delivery import publish_daily_report
+
+        report_dir_value = args.report_dir or args.drive_dir
+        report_dir = None if not report_dir_value else Path(report_dir_value)
+        report_date = None if not args.date else date.fromisoformat(args.date)
+        return publish_daily_report(settings, report_date, report_dir)
     if args.command == "build-training-dataset":
         from asset_poc.learning import build_monthly_training_dataset
 
@@ -774,6 +793,9 @@ def main() -> None:
             "structure-disclosures",
             "evaluate-qualitative",
             "generate-model-report",
+            "generate-system-summary",
+            "generate-data-coverage",
+            "daily-report",
             "build-training-dataset",
             "train-model",
             "evaluate-model",
@@ -795,6 +817,8 @@ def main() -> None:
     parser.add_argument("--document-type", default="earnings_release")
     parser.add_argument("--source", default="manual")
     parser.add_argument("--output")
+    parser.add_argument("--drive-dir")
+    parser.add_argument("--report-dir")
     parser.add_argument("--scope", choices=["earnings", "all"], default="earnings")
     parser.add_argument("--market-wide", action="store_true")
     parser.add_argument("--metadata-only", action="store_true")
@@ -802,7 +826,9 @@ def main() -> None:
     parser.add_argument("--skip-network", action="store_true", help="reuse local data (daily only)")
     parser.add_argument("--start", help="first monthly evaluation date (YYYY-MM-DD)")
     parser.add_argument("--end", help="last monthly evaluation date (YYYY-MM-DD)")
-    parser.add_argument("--dataset-version", default="monthly_pit_v1")
+    parser.add_argument(
+        "--dataset-version", default="monthly_pit_v2_unadjusted_valuation"
+    )
     parser.add_argument("--horizon", choices=["6m", "12m", "all"], default="all")
     parser.add_argument("--alpha-grid", default="0.1,1,10,100,1000")
     parser.add_argument("--model-id", default="latest")
@@ -823,7 +849,15 @@ def main() -> None:
                 + ", ".join(f"--{name.replace('_', '-')}" for name in missing)
             )
 
-    lock_managed_in_command = {"daily", "publish", "backup", "generate-model-report"}
+    lock_managed_in_command = {
+        "daily",
+        "publish",
+        "backup",
+        "generate-model-report",
+        "generate-system-summary",
+        "generate-data-coverage",
+        "daily-report",
+    }
     context = nullcontext() if args.command in lock_managed_in_command else pipeline_lock(settings)
     try:
         with context:

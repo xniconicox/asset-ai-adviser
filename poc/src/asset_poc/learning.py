@@ -21,8 +21,8 @@ from asset_poc.ranking import (
 )
 from asset_poc.watchlist import WATCHLIST_NAME
 
-DATASET_VERSION = "monthly_pit_v1"
-MODEL_VERSION = "ridge_rank_v1"
+DATASET_VERSION = "monthly_pit_v2_unadjusted_valuation"
+MODEL_VERSION = "ridge_rank_v2_unadjusted_valuation"
 
 PRICE_FEATURE_COLUMNS = [
     "return_1m",
@@ -129,8 +129,12 @@ def _monthly_evaluation_dates(
     start: str | None,
     end: str | None,
 ) -> list[pd.Timestamp]:
+    return_column = "return_price" if "return_price" in prices else "adjusted_close"
     valid_dates = pd.to_datetime(
-        prices.loc[pd.to_numeric(prices["model_price"], errors="coerce") > 0, "trade_date"]
+        prices.loc[
+            pd.to_numeric(prices[return_column], errors="coerce") > 0,
+            "trade_date",
+        ]
     ).dropna()
     if valid_dates.empty:
         return []
@@ -162,19 +166,23 @@ def _build_price_rows(
             .reset_index(drop=True)
         )
         all_dates = pd.to_datetime(group["trade_date"], errors="coerce")
-        model_price = pd.to_numeric(group["model_price"], errors="coerce")
-        valid = model_price.notna() & np.isfinite(model_price) & (model_price > 0)
+        return_column = "return_price" if "return_price" in group else "adjusted_close"
+        return_price = pd.to_numeric(group[return_column], errors="coerce")
+        valid = return_price.notna() & np.isfinite(return_price) & (return_price > 0)
         date_gaps = all_dates.diff().dt.days.gt(10).fillna(False)
         segment_all = ((~valid) | date_gaps).cumsum().to_numpy(dtype=int)
         valid_positions = np.flatnonzero(valid.to_numpy())
         if not len(valid_positions):
             continue
         dates = all_dates.iloc[valid_positions].to_numpy(dtype="datetime64[ns]")
-        values = model_price.iloc[valid_positions].to_numpy(dtype=float)
+        values = return_price.iloc[valid_positions].to_numpy(dtype=float)
         segments = segment_all[valid_positions]
-        clean_close = pd.to_numeric(group["clean_close"], errors="coerce").to_numpy()[
-            valid_positions
-        ]
+        valuation_column = (
+            "valuation_price" if "valuation_price" in group else "clean_close"
+        )
+        valuation_price = pd.to_numeric(
+            group[valuation_column], errors="coerce"
+        ).to_numpy()[valid_positions]
         clean_volume = pd.to_numeric(group["clean_volume"], errors="coerce").to_numpy()[
             valid_positions
         ]
@@ -194,10 +202,10 @@ def _build_price_rows(
             segment = segments[position]
             segment_start = int(np.searchsorted(segments, segment, side="left"))
             history = values[segment_start : position + 1]
-            history_close = clean_close[segment_start : position + 1]
+            history_valuation = valuation_price[segment_start : position + 1]
             history_volume = clean_volume[segment_start : position + 1]
             recent_252 = history[-252:]
-            turnover = history_close[-20:] * history_volume[-20:]
+            turnover = history_valuation[-20:] * history_volume[-20:]
             average_turnover = (
                 float(np.nanmean(turnover)) if np.isfinite(turnover).any() else None
             )
@@ -213,7 +221,12 @@ def _build_price_rows(
                     "snapshot_date": evaluation_date.date(),
                     "canonical_code": str(code),
                     "price_date": price_date.date(),
-                    "latest_close": float(history[-1]),
+                    "latest_close": (
+                        float(history_valuation[-1])
+                        if np.isfinite(history_valuation[-1])
+                        and history_valuation[-1] > 0
+                        else None
+                    ),
                     "return_1m": _period_return(history, 21),
                     "return_3m": _period_return(history, 63),
                     "return_6m": _period_return(history, 126),

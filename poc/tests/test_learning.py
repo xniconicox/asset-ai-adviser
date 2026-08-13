@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from asset_poc.learning import (
+    DATASET_VERSION,
     MODEL_FEATURE_COLUMNS,
+    MODEL_VERSION,
+    _build_price_rows,
     _fit_ridge,
     _forward_label,
     _temporal_split_masks,
@@ -43,6 +47,24 @@ def test_forward_label_does_not_cross_invalid_price_segment() -> None:
     assert str(start) == "2025-02-03"
     assert end is None
     assert result is None
+
+
+def test_monthly_rows_use_raw_close_for_valuation_and_adjusted_for_return() -> None:
+    dates = pd.bdate_range("2024-01-01", periods=260)
+    prices = pd.DataFrame(
+        {
+            "trade_date": dates,
+            "canonical_code": "1111",
+            "return_price": np.linspace(80.0, 120.0, len(dates)),
+            "valuation_price": 150.0,
+            "clean_volume": 1000.0,
+        }
+    )
+
+    result = _build_price_rows(prices, [dates[-1]])
+
+    assert result.loc[0, "latest_close"] == 150.0
+    assert result.loc[0, "return_12m"] == pytest.approx(120.0 / prices.loc[7, "return_price"] - 1)
 
 
 def test_ridge_recovers_linear_direction() -> None:
@@ -98,3 +120,5 @@ def test_model_feature_list_contains_price_and_fundamentals() -> None:
     assert "momentum_12_1" in MODEL_FEATURE_COLUMNS
     assert "per" in MODEL_FEATURE_COLUMNS
     assert "forecast_eps_revision" in MODEL_FEATURE_COLUMNS
+    assert DATASET_VERSION == "monthly_pit_v2_unadjusted_valuation"
+    assert MODEL_VERSION == "ridge_rank_v2_unadjusted_valuation"

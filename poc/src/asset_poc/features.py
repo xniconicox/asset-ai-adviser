@@ -9,7 +9,7 @@ from asset_poc.database import insert_frame
 from asset_poc.price_quality import clean_price_history, store_price_quality_events
 from asset_poc.watchlist import WATCHLIST_NAME
 
-FEATURE_VERSION = "price_v2_cleaned"
+FEATURE_VERSION = "price_v3_dual_price"
 
 
 def _period_return(prices: pd.Series, days: int) -> float | None:
@@ -20,11 +20,11 @@ def _period_return(prices: pd.Series, days: int) -> float | None:
 
 
 def _latest_usable_segment(group: pd.DataFrame) -> pd.DataFrame:
-    """Use only the latest continuous run of valid model prices."""
+    """Use only the latest continuous run of valid total-return prices."""
     ordered = group.sort_values("trade_date").drop_duplicates("trade_date", keep="last")
-    price_column = "model_price" if "model_price" in ordered else "adjusted_close"
-    model_price = pd.to_numeric(ordered[price_column], errors="coerce")
-    valid = model_price.notna() & model_price.map(math.isfinite) & (model_price > 0)
+    price_column = "return_price" if "return_price" in ordered else "adjusted_close"
+    return_price = pd.to_numeric(ordered[price_column], errors="coerce")
+    valid = return_price.notna() & return_price.map(math.isfinite) & (return_price > 0)
     dates = pd.to_datetime(ordered["trade_date"], errors="coerce")
     breaks = (~valid) | dates.diff().dt.days.gt(10).fillna(False)
     segment_id = breaks.cumsum()
@@ -32,7 +32,7 @@ def _latest_usable_segment(group: pd.DataFrame) -> pd.DataFrame:
         return ordered.iloc[0:0].copy()
     latest_segment = segment_id.loc[valid[valid].index[-1]]
     result = ordered.loc[(segment_id == latest_segment) & valid].copy()
-    result["model_price"] = model_price.loc[result.index]
+    result["return_price"] = return_price.loc[result.index]
     return result
 
 
@@ -42,24 +42,34 @@ def calculate_price_features(prices: pd.DataFrame) -> pd.DataFrame:
         group = _latest_usable_segment(group)
         if group.empty:
             continue
-        close = group["model_price"].astype(float)
-        returns = close.pct_change(fill_method=None)
-        recent_252 = close.tail(252)
+        return_price = group["return_price"].astype(float)
+        valuation_column = "valuation_price" if "valuation_price" in group else "close"
+        valuation_price = pd.to_numeric(group[valuation_column], errors="coerce")
+        latest_valuation = valuation_price.iloc[-1]
+        latest_close = (
+            float(latest_valuation)
+            if pd.notna(latest_valuation)
+            and math.isfinite(float(latest_valuation))
+            and float(latest_valuation) > 0
+            else None
+        )
+        returns = return_price.pct_change(fill_method=None)
+        recent_252 = return_price.tail(252)
         recent_returns_60 = returns.tail(60)
         downside = recent_returns_60[recent_returns_60 < 0]
         max_drawdown = (recent_252 / recent_252.cummax() - 1).min()
         momentum_12_1 = None
-        if len(close.dropna()) > 252:
-            momentum_12_1 = float(close.iloc[-22] / close.iloc[-253] - 1)
+        if len(return_price.dropna()) > 252:
+            momentum_12_1 = float(return_price.iloc[-22] / return_price.iloc[-253] - 1)
         records.append(
             {
                 "canonical_code": str(code),
                 "price_date": group["trade_date"].iloc[-1],
-                "latest_close": float(close.iloc[-1]),
-                "return_1m": _period_return(close, 21),
-                "return_3m": _period_return(close, 63),
-                "return_6m": _period_return(close, 126),
-                "return_12m": _period_return(close, 252),
+                "latest_close": latest_close,
+                "return_1m": _period_return(return_price, 21),
+                "return_3m": _period_return(return_price, 63),
+                "return_6m": _period_return(return_price, 126),
+                "return_12m": _period_return(return_price, 252),
                 "momentum_12_1": momentum_12_1,
                 "volatility_20d": float(returns.tail(20).std() * math.sqrt(252)),
                 "volatility_60d": float(recent_returns_60.std() * math.sqrt(252)),
@@ -67,7 +77,9 @@ def calculate_price_features(prices: pd.DataFrame) -> pd.DataFrame:
                     float(downside.std() * math.sqrt(252)) if len(downside) > 1 else None
                 ),
                 "max_drawdown_252d": float(max_drawdown),
-                "high_52w_distance": float(close.iloc[-1] / recent_252.max() - 1),
+                "high_52w_distance": float(
+                    return_price.iloc[-1] / recent_252.max() - 1
+                ),
                 "average_volume_20d": float(
                     group.get("clean_volume", group["volume"]).tail(20).mean()
                 ),
@@ -77,7 +89,7 @@ def calculate_price_features(prices: pd.DataFrame) -> pd.DataFrame:
                         * group.get("clean_volume", group["volume"])
                     ).tail(20).mean()
                 ),
-                "source": "yahoo_finance+price_clean_v1",
+                "source": "yahoo_finance+price_clean_v2_dual_price",
                 "source_tier": "C",
             }
         )
