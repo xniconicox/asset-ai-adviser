@@ -8,6 +8,7 @@ __pycache__/
 .env
 .tmp/
 tmp/
+out_report
 poc/output/
 poc/data/raw/
 poc/data/published/
@@ -16,3 +17,4 @@ poc/data/pipeline.lock
 poc/data/*.duckdb
 poc/data/*.wal
 poc/logs/
+notes.md

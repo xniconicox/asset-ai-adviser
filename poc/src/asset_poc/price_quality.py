@@ -5,7 +5,7 @@ import pandas as pd
 
 from asset_poc.database import insert_frame
 
-CLEANING_VERSION = "price_clean_v1"
+CLEANING_VERSION = "price_clean_v2_dual_price"
 
 
 def _finite(series: pd.Series) -> pd.Series:
@@ -74,7 +74,12 @@ def clean_price_history(prices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
     cleaned["clean_low"] = data["low"]
     cleaned["clean_close"] = data["close"]
     cleaned["clean_volume"] = data["volume"]
-    cleaned["model_price"] = data["adjusted_close"]
+    # Keep the two economic meanings separate.  Adjusted close is suitable for
+    # return calculations, while valuation ratios must use the price that was
+    # actually quoted on that date.  ``model_price`` remains as a compatibility
+    # alias for the return series used by older callers.
+    cleaned["return_price"] = data["adjusted_close"]
+    cleaned["model_price"] = cleaned["return_price"]
 
     finite_ohlc = pd.concat(
         [_finite(data[column]) for column in ("open", "high", "low", "close")],
@@ -93,6 +98,7 @@ def clean_price_history(prices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
     cleaned.loc[
         invalid_ohlc, ["clean_open", "clean_high", "clean_low", "clean_close"]
     ] = np.nan
+    cleaned["valuation_price"] = cleaned["clean_close"]
 
     finite_adjusted = _finite(data["adjusted_close"])
     finite_close = _finite(data["close"])
@@ -119,7 +125,7 @@ def clean_price_history(prices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
         | ~finite_close
         | (data["close"] <= 0)
     )
-    cleaned.loc[invalid_model_price, "model_price"] = np.nan
+    cleaned.loc[invalid_model_price, ["return_price", "model_price"]] = np.nan
 
     negative_volume = _finite(data["volume"]) & (data["volume"] < 0)
     cleaned.loc[negative_volume, "clean_volume"] = np.nan

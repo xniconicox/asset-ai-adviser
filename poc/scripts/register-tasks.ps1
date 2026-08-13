@@ -6,7 +6,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$PocPath = "/mnt/c/Users/ShunK/works/asset-ai-adviser/poc"
+$PocPath = if ($env:ASSET_POC_PATH) {
+    $env:ASSET_POC_PATH
+} else {
+    (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+}
 $DistributionArgument = if ($WslDistribution) { "-d $WslDistribution " } else { "" }
 
 $DailyAction = New-ScheduledTaskAction `
@@ -22,7 +26,7 @@ Register-ScheduledTask `
     -Action $DailyAction `
     -Trigger $DailyTrigger `
     -Settings $DailySettings `
-    -Description "Asset AI Adviser daily data, ranks, DQ and snapshot" `
+    -Description "Asset AI Adviser daily data, ranks, DQ, snapshot and PDF report (no LLM usage)" `
     -Force
 
 $BackupAction = New-ScheduledTaskAction `
@@ -42,7 +46,7 @@ Register-ScheduledTask `
     -Action $BackupAction `
     -Trigger $BackupTrigger `
     -Settings $BackupSettings `
-    -Description "Asset AI Adviser weekly DuckDB backup" `
+    -Description "Asset AI Adviser weekly DuckDB backup (no LLM usage)" `
     -Force
 
 Write-Host "Registered ${TaskPrefix}-Daily at $DailyAt and weekly backup at $BackupAt."

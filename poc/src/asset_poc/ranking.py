@@ -16,8 +16,8 @@ from asset_poc.qualitative import (
 )
 from asset_poc.watchlist import WATCHLIST_NAME
 
-FUNDAMENTAL_FEATURE_VERSION = "fundamental_v2_canonical"
-RANKING_VERSION = "rule_rank_v5_price_cleaned"
+FUNDAMENTAL_FEATURE_VERSION = "fundamental_v3_unadjusted_valuation"
+RANKING_VERSION = "rule_rank_v6_unadjusted_valuation"
 QUALITATIVE_WEIGHT_6M = 0.10
 QUALITATIVE_WEIGHT_12M = 0.08
 
@@ -240,7 +240,7 @@ def calculate_fundamental_features(
                 latest_disclosure_date, forecast_rows.iloc[-1]["disclosure_date"]
             )
 
-        latest_price = float(price_lookup.loc[code, "latest_close"])
+        latest_price = _valid_number(price_lookup.loc[code, "latest_close"])
         actual_eps = _valid_number(latest["eps"])
         full_year_eps_values = pd.to_numeric(
             group.loc[group["current_period_type"] == "FY", "eps"], errors="coerce"
@@ -265,10 +265,14 @@ def calculate_fundamental_features(
         forecast_eps_revision = _growth(forecast_eps, prior_forecast_eps)
         per = (
             latest_price / valuation_eps
-            if valuation_eps is not None and valuation_eps > 0
+            if latest_price is not None and valuation_eps is not None and valuation_eps > 0
             else None
         )
-        pbr = latest_price / bps if bps is not None and bps > 0 else None
+        pbr = (
+            latest_price / bps
+            if latest_price is not None and bps is not None and bps > 0
+            else None
+        )
         completeness_values = [
             per,
             pbr,

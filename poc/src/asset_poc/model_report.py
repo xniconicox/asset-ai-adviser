@@ -841,7 +841,7 @@ def generate_model_eda_report(
             _para("主な制約", styles["h2"]),
             _para(
                 "・Yahoo Financeは非公式二次ソースであり、本番利用では契約・公式データへの置換が必要。\n"
-                "・J-Quants Freeの数値決算は遅延があり、昨日の開示を反映できない。\n"
+                "・財務履歴は初月のJ-Quants Standard、日次の適時開示はTDnetを主経路とする。\n"
                 f"・定性特徴量は現在{qualitative_count}件で、暫定ウェイトの有効性評価には対象拡大が必要。\n"
                 "・現在のEDAは1つの横断面Snapshotで、時系列安定性やRegime変化を表さない。\n"
                 "・順位は予測力をまだバックテストしておらず、投資成果を保証しない。",
